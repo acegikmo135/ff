@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mind-Blowing File Manager</title>
+    <!-- Tailwind CSS CDN - Used for single-file, no-server local execution -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS Variables for theming */
+        :root {
+            --color-bg-primary: #667eea; /* body background start */
+            --color-bg-secondary: #764ba2; /* body background end */
+            --color-card-bg: rgba(255, 255, 255, 0.95);
+            --color-card-border: rgba(255, 255, 255, 0.3);
+            --color-text-primary: #374151;
+            --color-text-secondary: #6b7280;
+            --color-drag-area-border: #a78bfa;
+            --color-drag-area-bg: rgba(167, 139, 250, 0.1);
+            --color-drag-area-hover-border: #8b5cf6;
+            --color-drag-area-hover-bg: rgba(139, 92, 246, 0.2);
+            --color-file-item-bg: #f3f4f6;
+            --color-file-item-border: #e5e7eb;
+            --color-file-item-hover-bg: #e0e7ff;
+            --color-search-border: #d1d5db;
+            --color-search-focus-border: #8b5cf6;
+            --color-search-focus-shadow: rgba(139, 92, 246, 0.3);
+            --color-message-box-bg: #333;
+            --color-toggle-bg: #e5e7eb;
+            --color-toggle-circle: #4b5563;
+        }
+
+        .dark-mode {
+            --color-bg-primary: #1a202c; /* Darker body background start */
+            --color-bg-secondary: #2d3748; /* Darker body background end */
+            --color-card-bg: rgba(45, 55, 72, 0.95); /* Darker card background */
+            --color-card-border: rgba(255, 255, 255, 0.1);
+            --color-text-primary: #e2e8f0; /* Light text */
+            --color-text-secondary: #a0aec0; /* Lighter gray text */
+            --color-drag-area-border: #6366f1; /* Indigo */
+            --color-drag-area-bg: rgba(99, 102, 241, 0.1);
+            --color-drag-area-hover-border: #4f46e5;
+            --color-drag-area-hover-bg: rgba(79, 70, 229, 0.2);
+            --color-file-item-bg: #2d3748; /* Dark file item background */
+            --color-file-item-border: #4a5568;
+            --color-file-item-hover-bg: #4a5568; /* Slightly lighter dark blue hover */
+            --color-search-border: #4a5568;
+            --color-search-focus-border: #6366f1;
+            --color-search-focus-shadow: rgba(99, 102, 241, 0.3);
+            --color-message-box-bg: #4a5568;
+            --color-toggle-bg: #4a5568;
+            --color-toggle-circle: #cbd5e0;
+        }
+
+        /* Custom CSS for animations and overrides */
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--color-text-primary); /* Default text color for body */
+            transition: background 0.3s ease; /* Smooth transition for background */
+        }
+
+        .container-card {
+            background-color: var(--color-card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            width: 100%;
+            max-width: 900px;
+            animation: fadeIn 1s ease-out;
+            border: 1px solid var(--color-card-border);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .drag-area {
+            border: 3px dashed var(--color-drag-area-border);
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: var(--color-drag-area-bg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .drag-area.hover {
+            border-color: var(--color-drag-area-hover-border);
+            background-color: var(--color-drag-area-hover-bg);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .drag-area::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            transform: rotate(45deg);
+            transition: transform 0.5s ease-out;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .drag-area.hover::before {
+            transform: rotate(0deg);
+            opacity: 1;
+        }
+
+        .drag-area p.text-lg {
+            color: var(--color-text-primary);
+            transition: color 0.3s ease;
+        }
+        .drag-area p.text-sm {
+            color: var(--color-text-secondary);
+            transition: color 0.3s ease;
+        }
+        .drag-area p.text-sm span {
+            color: var(--color-drag-area-hover-border); /* Purple link color */
+            transition: color 0.3s ease;
+        }
+        .drag-area svg {
+            color: var(--color-drag-area-hover-border); /* Icon color */
+            transition: color 0.3s ease;
+        }
+
+
+        .file-item {
+            background-color: var(--color-file-item-bg);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease-in-out;
+            border: 1px solid var(--color-file-item-border);
+        }
+
+        .file-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            background-color: var(--color-file-item-hover-bg);
+        }
+
+        .file-item-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--color-text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: color 0.3s ease;
+        }
+
+        .file-size {
+            font-size: 0.85rem;
+            color: var(--color-text-secondary);
+            transition: color 0.3s ease;
+        }
+
+        .file-actions button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin-left: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .download-btn {
+            background-color: #4f46e5;
+            color: white;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        .download-btn:hover {
+            background-color: #4338ca;
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(79, 70, 229, 0.4);
+        }
+
+        .delete-btn {
+            background-color: #ef4444;
+            color: white;
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+        }
+
+        .delete-btn:hover {
+            background-color: #dc2626;
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        .search-input {
+            border: 2px solid var(--color-search-border);
+            border-radius: 10px;
+            padding: 12px 18px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+            color: var(--color-text-primary); /* Ensure input text color changes */
+            background-color: var(--color-file-item-bg); /* Match file item bg */
+        }
+
+        .search-input::placeholder { /* Placeholder color */
+            color: var(--color-text-secondary);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--color-search-focus-border);
+            box-shadow: 0 0 0 3px var(--color-search-focus-shadow);
+        }
+
+        /* Message Box Styling */
+        .message-box {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--color-message-box-bg);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .message-box.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .message-box.error {
+            background-color: #ef4444;
+        }
+
+        .message-box.success {
+            background-color: #22c55e;
+        }
+
+        /* Icons for buttons */
+        .icon {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+
+        /* Dark/Light Mode Toggle Switch */
+        .theme-switch {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 10; /* Ensure it's above other elements */
+        }
+
+        .theme-switch input[type="checkbox"] {
+            height: 0;
+            width: 0;
+            visibility: hidden;
+        }
+
+        .theme-switch label {
+            cursor: pointer;
+            text-indent: -9999px;
+            width: 50px;
+            height: 25px;
+            background: var(--color-toggle-bg);
+            display: block;
+            border-radius: 100px;
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+
+        .theme-switch label:after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 21px;
+            height: 21px;
+            background: var(--color-toggle-circle);
+            border-radius: 90px;
+            transition: 0.3s;
+        }
+
+        .theme-switch input:checked + label {
+            background: #8b5cf6; /* Purple for dark mode active */
+        }
+
+        .theme-switch input:checked + label:after {
+            left: calc(100% - 2px);
+            transform: translateX(-100%);
+        }
+
+        /* Text for theme switch */
+        .theme-switch-text {
+            color: var(--color-text-primary);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-card">
+        <div class="theme-switch">
+            <span class="theme-switch-text">Light</span>
+            <input type="checkbox" id="theme-toggle" />
+            <label for="theme-toggle"></label>
+            <span class="theme-switch-text">Dark</span>
+        </div>
+
+        <h1 class="text-4xl font-bold text-center text-gray-800 mb-8">
+            <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-indigo-600">
+                File Flow
+            </span>
+        </h1>
+
+        <div id="dragArea" class="drag-area mb-8 flex flex-col items-center justify-center">
+            <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+            <p class="text-lg font-medium">Drag & Drop Your Files Here</p>
+            <p class="text-sm mt-2">or <span class="font-semibold">Click to Browse</span></p>
+            <input type="file" id="fileInput" multiple class="hidden">
+        </div>
+
+        <div class="mb-6">
+            <input type="text" id="searchBar" placeholder="Search files..." class="search-input w-full">
+        </div>
+
+        <div id="fileList" class="file-list">
+            <!-- Files will be dynamically added here -->
+            <p class="text-center text-md py-8" id="noFilesMessage">No files uploaded yet. Drag & drop some files to get started!</p>
+        </div>
+    </div>
+
+    <!-- Message Box -->
+    <div id="messageBox" class="message-box"></div>
+
+    <script>
+        // Store files as an array of objects
+        // Each object will contain: { id: string, file: File, dataUrl: string }
+        let uploadedFiles = [];
+        const MAX_FILE_SIZE_MB = 250; // 250 MB limit
+
+        // Get DOM elements
+        const dragArea = document.getElementById('dragArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const searchBar = document.getElementById('searchBar');
+        const noFilesMessage = document.getElementById('noFilesMessage');
+        const messageBox = document.getElementById('messageBox');
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+
+        // Helper function to format file size
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+
+        // Function to show messages to the user
+        function showMessage(message, type = 'info', duration = 3000) {
+            messageBox.textContent = message;
+            messageBox.className = `message-box show ${type}`; // Add type class for styling
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, duration);
+        }
+
+        // Function to render files in the list
+        function renderFiles(filesToRender = uploadedFiles) {
+            fileList.innerHTML = ''; // Clear current list
+            if (filesToRender.length === 0) {
+                noFilesMessage.style.display = 'block';
+            } else {
+                noFilesMessage.style.display = 'none';
+                filesToRender.forEach(item => {
+                    const file = item.file;
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    fileItem.setAttribute('data-id', item.id); // Store ID for easy removal
+
+                    fileItem.innerHTML = `
+                        <div class="file-item-info">
+                            <span class="file-name">${file.name}</span>
+                            <span class="file-size">${formatBytes(file.size)}</span>
+                        </div>
+                        <div class="file-actions">
+                            <button class="download-btn" data-id="${item.id}">
+                                <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
+                                Download
+                            </button>
+                            <button class="delete-btn" data-id="${item.id}">
+                                <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 011-1h4a1 1 0 110 2H8a1 1 0 01-1-1zm2 3a1 1 0 011-1h4a1 1 0 110 2H10a1 1 0 01-1-1zm0 3a1 1 0 011-1h4a1 1 0 110 2H10a1 1 0 01-1-1z" clip-rule="evenodd" />
+                                </svg>
+                                Delete
+                            </button>
+                        </div>
+                    `;
+                    fileList.appendChild(fileItem);
+                });
+            }
+        }
+
+        // Function to handle file processing
+        function processFiles(files) {
+            Array.from(files).forEach(file => {
+                // Check file size limit
+                if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+                    showMessage(`File "${file.name}" exceeds the ${MAX_FILE_SIZE_MB}MB limit.`, 'error');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const id = crypto.randomUUID(); // Generate a unique ID for the file
+                    uploadedFiles.push({
+                        id: id,
+                        file: file,
+                        dataUrl: e.target.result // Store Data URL for download
+                    });
+                    renderFiles(); // Re-render the list after adding a file
+                    showMessage(`File "${file.name}" uploaded successfully!`, 'success');
+                };
+                reader.onerror = () => {
+                    showMessage(`Could not read file "${file.name}".`, 'error');
+                };
+                reader.readAsDataURL(file); // Read file content as Data URL
+            });
+        }
+
+        // --- Theme Toggle Functionality ---
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                body.classList.add('dark-mode');
+                themeToggle.checked = true;
+            } else {
+                body.classList.remove('dark-mode');
+                themeToggle.checked = false;
+            }
+        }
+
+        // Check for saved theme preference on load
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            applyTheme(savedTheme);
+        } else {
+            // Default to light mode if no preference saved
+            applyTheme('light');
+        }
+
+        // Event listener for theme toggle
+        themeToggle.addEventListener('change', () => {
+            if (themeToggle.checked) {
+                applyTheme('dark');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                applyTheme('light');
+                localStorage.setItem('theme', 'light');
+            }
+        });
+
+        // --- Event Listeners for File Manager ---
+
+        // Drag and Drop events
+        dragArea.addEventListener('dragover', (e) => {
+            e.preventDefault(); // Prevent default to allow drop
+            dragArea.classList.add('hover');
+        });
+
+        dragArea.addEventListener('dragleave', () => {
+            dragArea.classList.remove('hover');
+        });
+
+        dragArea.addEventListener('drop', (e) => {
+            e.preventDefault(); // Prevent default to get files
+            dragArea.classList.remove('hover');
+            processFiles(e.dataTransfer.files);
+        });
+
+        // Click to browse
+        dragArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            processFiles(e.target.files);
+        });
+
+        // Search functionality
+        searchBar.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filteredFiles = uploadedFiles.filter(item =>
+                item.file.name.toLowerCase().includes(searchTerm)
+            );
+            renderFiles(filteredFiles); // Render filtered files
+        });
+
+        // Event delegation for download and delete buttons
+        fileList.addEventListener('click', (e) => {
+            const target = e.target.closest('button'); // Get the closest button ancestor
+
+            if (!target) return; // Not a button click
+
+            const fileId = target.dataset.id;
+
+            if (target.classList.contains('download-btn')) {
+                const fileToDownload = uploadedFiles.find(item => item.id === fileId);
+                if (fileToDownload) {
+                    const a = document.createElement('a');
+                    a.href = fileToDownload.dataUrl;
+                    a.download = fileToDownload.file.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    showMessage(`Downloading "${fileToDownload.file.name}"...`, 'info');
+                }
+            } else if (target.classList.contains('delete-btn')) {
+                uploadedFiles = uploadedFiles.filter(item => item.id !== fileId);
+                renderFiles(); // Re-render the list
+                showMessage('File deleted successfully!', 'success');
+            }
+        });
+
+        // Initial render (empty list)
+        renderFiles();
+    </script>
+</body>
+</html>
